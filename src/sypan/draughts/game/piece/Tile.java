@@ -126,4 +126,20 @@ public class Tile {
             return distanceOffset - 3;
         }
     }
+
+    public Tile set(Tile tile) {
+        x = tile.x;
+        y = tile.y;
+        return this;
+    }
+
+    public Tile addLocal(int x, int y) {
+        this.x += x;
+        this.y += y;
+        return this;
+    }
+
+    public void addLocal(Tile check) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }

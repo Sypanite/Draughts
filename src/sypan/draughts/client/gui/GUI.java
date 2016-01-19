@@ -35,9 +35,9 @@ public final class GUI {
     private final Screen screen;
     private final Client client;
 
-    private AbstractGUIState currentState, currentSubstate;
-
     private final ShadowLabel restartLabel;
+
+    private AbstractGUIState currentState, currentSubstate;
 
     public GUI(Client client) {
         this.client = client;
@@ -348,5 +348,17 @@ public final class GUI {
 
     public void markRestartRequired() {
         restartLabel.show();
+    }
+
+    /**
+     * Allows any states/substates with sound to update their volume.
+     **/
+    public void updateVolume() {
+        if (currentState != null) {
+            currentState.updateVolume();
+        }
+        if (currentSubstate != null) {
+            currentSubstate.updateVolume();
+        }
     }
 }

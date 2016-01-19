@@ -288,7 +288,7 @@ public class Client extends SimpleApplication {
 
         modelStore.reloadModels(this);
         gameMusic.setVolume(config.getMusicVolume());
-        draughtsGUI.getScreen().setUIAudioVolume(config.getSoundVolume());
+        draughtsGUI.updateVolume();
 
         clearShadows();
         configureApplication();

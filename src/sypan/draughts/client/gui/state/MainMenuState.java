@@ -6,6 +6,7 @@ import sypan.draughts.client.gui.element.GUIButton;
 import sypan.draughts.client.gui.element.Image;
 
 import com.jme3.math.Vector2f;
+import sypan.utility.Logger;
 
 /**
  * {@code MainMenuState} is the {@code GUIState} active when the player is at
@@ -30,8 +31,8 @@ public class MainMenuState extends AbstractGUIState {
     public void createState() {
         hoverSound = new AudioNode(getClient().getAssetManager(), "sounds/gui/HOVER.wav");
         pressSound = new AudioNode(getClient().getAssetManager(), "sounds/gui/PRESS.wav");
-        hoverSound.setPositional(false);
         pressSound.setPositional(false);
+        updateVolume();
 
         addChild(new Image(getGUI().getScreen(), "LOGO", clampCentre(getGUI(), LOGO_DIMENSIONS).setY(30), LOGO_DIMENSIONS, "gui/menu/LOGO.png"));
 
@@ -42,5 +43,12 @@ public class MainMenuState extends AbstractGUIState {
 
             addChild(guiButton[i]);
         }
+    }
+
+    @Override
+    protected void updateVolume() {
+        hoverSound.setVolume(getClient().getConfig().getSoundVolume());
+        pressSound.setVolume(getClient().getConfig().getSoundVolume());
+        Logger.logInfo("Updated volume.");
     }
 }

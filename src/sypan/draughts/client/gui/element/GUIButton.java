@@ -203,7 +203,7 @@ public class GUIButton extends Button {
 
     @Override
     public void onButtonMouseLeftUp(MouseButtonEvent arg0, boolean arg1) {
-        if (hoverSound != null) {
+        if (pressSound != null) {
             pressSound.playInstance();
         }
         gui.onButtonClick(buttonType);

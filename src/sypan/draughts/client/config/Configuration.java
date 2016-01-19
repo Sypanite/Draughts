@@ -37,7 +37,7 @@ public final class Configuration implements Serializable {
 
     public void save(Client c) {
         try {
-            FileOutputStream fileOut = new FileOutputStream("config.ser");
+            FileOutputStream fileOut = new FileOutputStream("gamecfg.ser");
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
 
             out.writeObject(this);
@@ -83,7 +83,7 @@ public final class Configuration implements Serializable {
         try {
             Configuration config;
 
-            FileInputStream fileIn = new FileInputStream("config.ser");
+            FileInputStream fileIn = new FileInputStream("gamecfg.ser");
             ObjectInputStream in = new ObjectInputStream(fileIn);
 
             config = (Configuration) in.readObject();

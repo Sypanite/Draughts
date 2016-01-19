@@ -13,8 +13,10 @@ import sypan.draughts.game.player.Side;
  * <i>HungryMoveType</i>), it did not meet the criteria I was aiming for in a
  * 'greedy' AI. {@link Greedy} <i>(an advanced version of 'Hungry' - pun
  * intended)</i>, my third AI class, sought to rectify these issues.
+ * 
+ * This system was a stupid idea.
  *
- * @author Carl Linley	
+ * @author Carl Linley
  **/
 public class Hungry extends AbstractAIType {
 

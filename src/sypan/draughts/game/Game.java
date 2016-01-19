@@ -180,6 +180,37 @@ public class Game {
         return MoveType.INVALID;
     }
 
+    private boolean canJump(Piece toMove, Tile destTile) {
+        return canJump(toMove.getType(), toMove.getTile(), destTile);
+    }
+
+    private int countPossibleJumps(Piece toMove) {
+        int jumps = 0;
+        Tile destTile = new Tile();
+
+        for (int i = 0; i != 4; i++) {
+            destTile.set(toMove.getTile());
+
+            if (i == 0) {
+                destTile.addLocal(2, 2);
+            }
+            if (i == 1) {
+                destTile.addLocal(-2, 2);
+            }
+            if (i == 2) {
+                destTile.addLocal(2, -2);
+            }
+            if (i == 3) {
+                destTile.addLocal(-2, -2);
+            }
+
+            if (canJump(toMove, destTile)) {
+                jumps ++;
+            }
+        }
+        return jumps;
+    }
+
     public void playMove(Piece toMove, Tile destinationTile) {
         if (movePlayed || destinationTile.equals(toMove.getTile())) {
             return;
@@ -195,8 +226,11 @@ public class Game {
             jumpedPiece = (moveType == MoveType.VALID_JUMP);
 
             if (jumpedPiece) {
+                final Tile destTile = new Tile();
+
                 client.getExecutor().submit(() -> {
                     int piecesTaken = 1;
+                    boolean resetTurn = false;
                     
                     while (jumpedPiece) {
                         try {
@@ -206,30 +240,65 @@ public class Game {
                         }
 
                         client.enqueue(() -> {
-                            Tile destTile;
-                            
-                            if (canJump(toMove.getType(), toMove.getTile(), (destTile = toMove.getTile().add(2, 2)))
-                             || canJump(toMove.getType(), toMove.getTile(), (destTile = toMove.getTile().add(-2, 2)))
-                             || canJump(toMove.getType(), toMove.getTile(), (destTile = toMove.getTile().add(2, -2)))
-                             || canJump(toMove.getType(), toMove.getTile(), (destTile = toMove.getTile().add(-2, -2)))) {
+                            int possibleJumps = countPossibleJumps(toMove);
+
+                            if (possibleJumps == 0) {
+                                jumpedPiece = false;
+                            }
+                            else if (possibleJumps == 1) {
+                                for (int i = 0; i != 4; i++) {
+                                    destTile.set(toMove.getTile());
+
+                                    if (i == 0) {
+                                        destTile.addLocal(2, 2);
+                                    }
+                                    if (i == 1) {
+                                        destTile.addLocal(-2, 2);
+                                    }
+                                    if (i == 2) {
+                                        destTile.addLocal(2, -2);
+                                    }
+                                    if (i == 3) {
+                                        destTile.addLocal(-2, -2);
+                                    }
+
+                                    if (canJump(toMove, destTile)) {
+                                        break;
+                                    }
+                                }
                                 movePiece(MoveType.VALID_JUMP, toMove, destTile);
                             }
                             else {
+                                destTile.set(-1, -1);
                                 jumpedPiece = false;
                             }
                             return null;
                         });
-                        if (jumpedPiece) {
+
+                        if (!destTile.equals(-1, -1) && jumpedPiece) {
                             notifyJump(piecesTaken);
                             piecesTaken++;
                         }
                     }
-                    
+
                     client.enqueue(() -> {
-                        endTurn(toMove);
+                        if (!destTile.equals(-1, -1)) {
+                            endTurn(toMove);
+                        }
+                        else { // Choice
+                            Logger.logInfo("Setting choice.");
+                            movePlayed = false;
+                            lockPieces(currentTurn);
+
+                            if (getPlayer(currentTurn).isHuman()) {
+                                client.setShowHover(true);
+                            }
+                            else {
+                                getAIPlayer(currentTurn).playMove(this, client);
+                            }
+                        }
                         return null;
                     });
-                    return null;
                 });
             }
             else {
@@ -269,7 +338,7 @@ public class Game {
             case KING_WHITE:
 
             case MAN_BLACK:
-                // NOT sexy code
+                // NOT sexy code - TODO cleanup
                 if ((destTile.equals(originTile.getX() + 2, originTile.getY() - 2)
                         && (getLogicalBoard().pieceOccupies(destTile.subtract(1, -1))
                         && getLogicalBoard().getPiece(destTile.subtract(1, -1)).belongsTo(pieceType.getSide().oppose()))
@@ -303,19 +372,19 @@ public class Game {
         client.enqueue(() -> {
             switch (piecesTaken) {
                 case 2:
-                    Game.this.notify("Double jump!", ColorRGBA.Cyan, 500);
+                    notify("Double jump!", ColorRGBA.Cyan, 500);
                 break;
                     
                 case 3:
-                    Game.this.notify("Triple jump!", ColorRGBA.Blue, 500);
+                    notify("Triple jump!", ColorRGBA.Blue, 500);
                 break;
                     
                 case 4:
-                    Game.this.notify("Quadruple jump!", ColorRGBA.Magenta, 500);// I have never seen this
+                    notify("Quadruple jump!", ColorRGBA.Magenta, 500); // I've never seen this
                 break;
                     
                 case 5:
-                    Game.this.notify("Quintuple jump!", ColorRGBA.Pink, 500);// Or this
+                    notify("Quintuple jump!", ColorRGBA.Pink, 500); // Or this
                 break;
                     
                 default:
@@ -350,12 +419,11 @@ public class Game {
 
             /* Save move history */
             for (Move m : moveHistory) {
-                writer.write("0, " + // 0, 1 - Move type - 0 for player, 1 for initial
-                        getPlayer(m.getSide()).getType().getFlag() + ", " + // AI, HU - Player type - 'AI' for AI, 'HU' for human
-                        m.getSide().getID() + ", " + // B, W - Side - 'B' for black, 'W' for white
-                        m.getOrigin().getX() + "," + m.getOrigin().getY() + ", " + // n, n - Origin tile coordinates
-                        m.getDestination().getX() + "," + m.getDestination().getY() + ""); // n, n - Destination
-                // tile coordinates
+                writer.write("0, " +                                                            // 0, 1 - Move type - 0 for player, 1 for initial
+                             getPlayer(m.getSide()).getType().getFlag() + ", " +                // AI, HU - Player type - 'AI' for AI, 'HU' for human
+                             m.getSide().getID() + ", " +                                       // B, W - Side - 'B' for black, 'W' for white
+                             m.getOrigin().getX() + "," + m.getOrigin().getY() + ", " +         // n, n - Origin tile coordinates
+                             m.getDestination().getX() + "," + m.getDestination().getY() + ""); // n, n - Destination tile coordinates
                 writer.newLine();
             }
             writer.write("ENDGAME, " + endCode + ", " + victor.getID());
@@ -417,8 +485,8 @@ public class Game {
         for (Piece[] o : getLogicalBoard().getPieces()) {
             for (Piece p : o) {
                 if (p != null && p.belongsTo(forSide)
-                        && !client.getGraphicalBoard().isPieceLocked(p)
-                        && (canMovePiece(p) || canJumpPiece(p))) {
+                 && !client.getGraphicalBoard().isPieceLocked(p)
+                 && (canMovePiece(p) || canJumpPiece(p))) {
                     myPieces[currentIndex++] = p;
                 }
             }
@@ -502,9 +570,9 @@ public class Game {
                 Thread.sleep(100);
             }
             setTurn(currentTurn.oppose());
-            
+
             TurnType turnType = getCurrentTurnType();
-            
+
             if (getPlayer(currentTurn).isHuman()) {
                 moveCameraTo(currentTurn);
                 
@@ -523,8 +591,7 @@ public class Game {
                 }
                 else {
                     client.setShowHover(false);
-                    client.getGUI().setState(
-                            StateType.SUBSTATE_RESPOND_DRAW);
+                    client.getGUI().setState(StateType.SUBSTATE_RESPOND_DRAW);
                 }
             }
             else {
@@ -534,7 +601,7 @@ public class Game {
                     if (turnType == TurnType.TAKE_CHOICE) {
                         lockPieces(currentTurn);
                     }
-                    getAIPlayer(currentTurn).playMove(Game.this, client);
+                    getAIPlayer(currentTurn).playMove(this, client);
                 }
                 else {
                     enforceJump();
@@ -566,7 +633,7 @@ public class Game {
                 if (p != null && canJumpPiece(p)) {
                     movePlayed = false;
                     playMove(p, Utility.getJumpDestination(Game.this, p, p.getTile()));
-                    Game.this.notify("Jump enforced!", ColorRGBA.White, 3000);
+                    notify("Jump enforced!", ColorRGBA.White, 3000);
                     changingTurn = false;
                 }
             }

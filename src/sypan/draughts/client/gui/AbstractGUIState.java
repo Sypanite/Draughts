@@ -147,4 +147,11 @@ public abstract class AbstractGUIState extends Panel {
     protected static Vector2f clampBottomLeft(GUI gui, int xOffset, int yOffset) {
         return new Vector2f(xOffset, gui.getClient().getScreenDimensions().getY() - yOffset);
     }
+
+    /**
+     * Called when the user changes the volume of sound effects.
+     * Should be overridden by states implementing sound.
+     **/
+    protected void updateVolume() {
+    }
 }
